@@ -1,0 +1,3 @@
+include 'ships-core'
+include 'ships-gui'
+include 'ships-server'

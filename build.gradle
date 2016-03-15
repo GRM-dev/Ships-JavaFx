@@ -1,0 +1,80 @@
+buildscript {
+	repositories {
+		jcenter()
+	}
+	dependencies {
+		 classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+	}
+}
+
+subprojects {
+	apply plugin: 'java'
+	apply plugin: 'eclipse'
+	apply plugin: 'gradle-one-jar'
+	apply plugin: 'signing'
+
+	repositories {
+		mavenCentral()
+		mavenLocal()
+	}
+	
+	dependencies {
+		testCompile 'junit:junit:4.12'
+		testCompile 'org.assertj:assertj-core:3.2.0'
+	}
+	
+	task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+}
+
+project.gradle.taskGraph.whenReady { taskGraph ->
+    if ( taskGraph.allTasks.find { it.name == "cobertura" } != null) {
+        project.tasks.withType(Test).each { Test test ->
+            test.ignoreFailures=true
+            test.afterSuite { td, tr ->
+                if ( td.getParent() == null ) {
+                    project.ext.testFailures=tr.getFailedTestCount()
+                }
+            }
+        }
+        project.tasks.getByName("cobertura") {
+            doLast {
+                if ( testFailures ) {
+                   throw new Exception("There were ${testFailures} test failures")
+                  }
+            }
+        }
+	}
+}
+
+project('ships-gui') {
+	apply plugin: 'application'
+
+	dependencies {
+		compile project(':ships-core')
+	}
+}
+
+project('ships-server'){
+    dependencies {
+		compile project(':ships-core')
+	}
+}
+
+project('ships-core'){
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.10'
+}
